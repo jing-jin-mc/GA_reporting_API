@@ -1,9 +1,4 @@
 
-# coding: utf-8
-
-# In[9]:
-
-
 ######### Libraries ################
 import argparse
 from googleapiclient.discovery import build
@@ -17,6 +12,7 @@ import os
 import errno
 from datetime import datetime, timedelta
 from time import sleep
+
 
 #################################################
 SCOPES = ['https://www.googleapis.com/auth/analytics.readonly']
@@ -47,11 +43,12 @@ def initialize_analyticsreporting(CLIENT_SECRETS_PATH):
   storage = file.Storage('analyticsreporting.dat')
   credentials = storage.get()
   if credentials is None or credentials.invalid:
-    credentials = tools.run_flow(flow, storage, flags)
+      credentials = tools.run_flow(flow, storage, flags)
+
   http = credentials.authorize(http=httplib2.Http())
 
   # Build the service object.
-  analytics = build('analytics', 'v4', http=http, discoveryServiceUrl=DISCOVERY_URI)
+  analytics = build('analytics', 'v4', http=http, discoveryServiceUrl=DISCOVERY_URI,cache_discovery=False)
 
   return analytics
 
@@ -91,14 +88,15 @@ def print_response(response):
     dimensionHeaders = columnHeader.get('dimensions', [])
     metricHeaders = columnHeader.get('metricHeader', {}).get('metricHeaderEntries', [])
     rows = report.get('data', {}).get('rows', [])
-    
+
     samplesReadCounts = report.get('data', {}).get('samplesReadCounts', [])
     if samplesReadCounts != []:
+        print ("Data has been sampled!")
         print (samplesReadCounts)
     samplingSpaceSizes = report.get('data', {}).get('samplingSpaceSizes', [])
     if samplingSpaceSizes != []:
         print (samplingSpaceSizes)
-    
+
     for row in rows:
         # create dict for each row
         dict = {}
@@ -119,7 +117,7 @@ def print_response(response):
               dict[metric.get('name')] = float(value)
 
         list.append(dict)
-    
+
     df = pd.DataFrame(list)
     return df
 
@@ -135,12 +133,12 @@ def get_ga_data(analytics, start_date, end_date, view_id, metrics, dimensions, s
         df_total = df_total.append(df)
         token = ga.get('reports', [])[0].get('nextPageToken')
         sleep(SLEEP_TIME)
-        
+
     return df_total
 
 ######### Functions: fetch data day by day  ################
 ####### Function will be called outside ##############
-def return_ga_data(analytics, start_date, end_date, view_id, metrics, dimensions, segments = [], split_dates = False, group_by = [],SLEEP_TIME = 5):
+def return_ga_data(analytics, start_date, end_date, view_id, metrics, dimensions, segments = [], split_dates = True, group_by = [],SLEEP_TIME = 2):
     if split_dates == False:
         return get_ga_data(analytics, start_date, end_date, view_id, metrics, dimensions, segments,SLEEP_TIME)
     else:
@@ -162,26 +160,10 @@ def return_ga_data(analytics, start_date, end_date, view_id, metrics, dimensions
             df_total = df_total.groupby(group_by, as_index=False).sum()
 
         return df_total
-    
-######### Functions: save data to a csv file  ################
-####### Function will be called outside ##############
-def save_df_to_csv(df, path, filename):
-    file_loc = path + filename
-    if not os.path.exists(os.path.dirname(file_loc)):
-        try:
-            os.makedirs(os.path.dirname(file_loc))
-        except OSError as exc: # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise    
-    return df.to_csv(path_or_buf = file_loc, index= False )
-
-
-# In[10]:
-
 
 ######### Functions: fetch data day by day and save data by filesize (number of days) ################
 ####### Function will be called outside ##############
-def get_and_save_data(path,filesize,analytics, start_date, end_date, view_id, metrics, dimensions, segments = [], split_dates = False, group_by = [],SLEEP_TIME = 5):
+def get_and_save_data(path,filesize,analytics, start_date, end_date, view_id, metrics, dimensions, segments = [], split_dates = True, group_by = [],SLEEP_TIME = 5):
     ###############
     start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
     end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
@@ -190,7 +172,7 @@ def get_and_save_data(path,filesize,analytics, start_date, end_date, view_id, me
     dates_pair = []
     for i in range(delta.days+1):
         dates.append(start_date + timedelta(days=i))
-    
+
     num_files = int(len(dates)/filesize)
     for j in range(num_files):
         start = dates[j*filesize]
@@ -208,4 +190,3 @@ def get_and_save_data(path,filesize,analytics, start_date, end_date, view_id, me
         if len(group_by) != 0:
             df_total = df_total.groupby(group_by, as_index=False).sum()
     return df_total
-
