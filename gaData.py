@@ -123,12 +123,34 @@ def print_response(response):
 
 ######### Functions: split one query into several querys to get one day's unsampled data (more than 10,000 rows)  ################
 ###### Will be called inside function return_ga_data()#############
-def get_ga_data(analytics, start_date, end_date, view_id, metrics, dimensions, segments, SLEEP_TIME):
-    ga =get_report(analytics, "", start_date, end_date, view_id, metrics, dimensions, segments)
+def get_ga_data(analytics,
+                start_date,
+                end_date,
+                view_id,
+                metrics,
+                dimensions,
+                segments,
+                SLEEP_TIME):
+    ga =get_report(analytics,
+                   "",
+                   start_date,
+                   end_date,
+                   view_id,
+                   metrics,
+                   dimensions,
+                   segments
+                  )
     df_total = print_response(ga)
     token = ga.get('reports', [])[0].get('nextPageToken')
     while token is not None:
-        ga = get_report(analytics, token, start_date, end_date, view_id, metrics, dimensions, segments)
+        ga = get_report(analytics,
+                        token,
+                        start_date,
+                        end_date,
+                        view_id,
+                        metrics,
+                        dimensions,
+                        segments)
         df = print_response(ga)
         df_total = df_total.append(df)
         token = ga.get('reports', [])[0].get('nextPageToken')
@@ -138,9 +160,27 @@ def get_ga_data(analytics, start_date, end_date, view_id, metrics, dimensions, s
 
 ######### Functions: fetch data day by day  ################
 ####### Function will be called outside ##############
-def return_ga_data(analytics, start_date, end_date, view_id, metrics, dimensions, segments = [], split_dates = True, group_by = [],SLEEP_TIME = 2):
+def return_ga_data(analytics,
+                   start_date,
+                   end_date,
+                   view_id,
+                   metrics,
+                   dimensions,
+                   segments = [],
+                   split_dates = True,
+                   group_by = [],
+                   SLEEP_TIME = 2
+                  ):
     if split_dates == False:
-        return get_ga_data(analytics, start_date, end_date, view_id, metrics, dimensions, segments,SLEEP_TIME)
+        return get_ga_data(analytics,
+                           start_date,
+                           end_date,
+                           view_id,
+                           metrics,
+                           dimensions,
+                           segments,
+                           SLEEP_TIME
+                          )
     else:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
@@ -153,20 +193,49 @@ def return_ga_data(analytics, start_date, end_date, view_id, metrics, dimensions
         df_total = pd.DataFrame()
         for date in dates:
             date = str(date)
-            df_total = df_total.append(get_ga_data(analytics, date, date, view_id, metrics, dimensions, segments,SLEEP_TIME))
+            df_total = df_total.append(get_ga_data(analytics,
+                                                   date,
+                                                   date,
+                                                   view_id,
+                                                   metrics,
+                                                   dimensions,
+                                                   segments,
+                                                   SLEEP_TIME
+                                                  )
+                                      )
             sleep(SLEEP_TIME)
 
         if len(group_by) != 0:
-            df_total = df_total.groupby(group_by, as_index=False).sum()
-
+            if df_total.empty:
+                return df_total
+            else:
+                df_total = df_total.groupby(group_by,
+                                            as_index=False
+                                            ).sum()
         return df_total
 
 ######### Functions: fetch data day by day and save data by filesize (number of days) ################
 ####### Function will be called outside ##############
-def get_and_save_data(path,filesize,analytics, start_date, end_date, view_id, metrics, dimensions, segments = [], split_dates = True, group_by = [],SLEEP_TIME = 5):
+def get_and_save_data(path,
+                      filesize,
+                      analytics,
+                      start_date,
+                      end_date,
+                      view_id,
+                      metrics,
+                      dimensions,
+                      segments,
+                      split_dates = True,
+                      group_by = [],
+                      SLEEP_TIME = 5
+                     ):
     ###############
-    start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-    end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    start_date = datetime.strptime(start_date,
+                                   '%Y-%m-%d'
+                                  ).date()
+    end_date = datetime.strptime(end_date,
+                                 '%Y-%m-%d'
+                                ).date()
     delta = end_date - start_date
     dates = []
     dates_pair = []
@@ -184,9 +253,38 @@ def get_and_save_data(path,filesize,analytics, start_date, end_date, view_id, me
     df_total = pd.DataFrame()
     for k in range(len(dates_pair)):
         filename = str(dates_pair[k][0])+"_"+str(dates_pair[k][1])+".csv"
-        df = return_ga_data(analytics, str(dates_pair[k][0]), str(dates_pair[k][1]), view_id, metrics, dimensions, segments, split_dates, group_by,SLEEP_TIME)
-        save_df_to_csv(df, path, filename)
+        df = return_ga_data(analytics,
+                            str(dates_pair[k][0]),
+                            str(dates_pair[k][1]),
+                            view_id, metrics,
+                            dimensions,
+                            segments,
+                            split_dates,
+                            group_by,
+                            SLEEP_TIME
+                           )
+        save_df_to_csv(df,
+                       path,
+                       filename
+                      )
         df_total = df_total.append(df)
-        if len(group_by) != 0:
-            df_total = df_total.groupby(group_by, as_index=False).sum()
+    if len(group_by) != 0:
+        if df_total.empty:
+            return df_total
+        else:
+            df_total = df_total.groupby(group_by,
+                                        as_index=False
+                                       ).sum()
     return df_total
+
+######### Functions: save data to a csv file  ################
+####### Function will be called outside ##############
+def save_df_to_csv(df, path, filename):
+    file_loc = path + '/' + filename
+    if not os.path.exists(os.path.dirname(file_loc)):
+        try:
+            os.makedirs(os.path.dirname(file_loc))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+    return df.to_csv(path_or_buf = file_loc, index= False )

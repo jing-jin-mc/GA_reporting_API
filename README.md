@@ -8,29 +8,34 @@ Use google analytics reporting api to fetch data from GA
   - Functions:
     - initialize_analyticsreporting(CLIENT_SECRETS_PATH)
     - return_ga_data(analytics,
-                start_date,
-                end_date,
-                view_id,
-                metrics,
-                dimensions,
-                segments = [],
-                split_dates = True,
-                group_by = [],
-                SLEEP_TIME = 2
-                )
+                       start_date,
+                       end_date,
+                       view_id,
+                       metrics,
+                       dimensions,
+                       segments = [],
+                       split_dates = True,
+                       group_by = [],
+                       SLEEP_TIME = 2
+                      )
     - get_and_save_data(path,
-                    filesize,
-                    analytics,
-                    start_date,
-                    end_date,
-                    view_id,
-                    metrics,
-                    dimensions,
-                    segments = [],
-                    split_dates = True,
-                    group_by = [],
-                    SLEEP_TIME = 2
-                    )
+                        filesize,
+                        analytics,
+                        start_date,
+                        end_date,
+                        view_id,
+                        metrics,
+                        dimensions,
+                        segments,
+                        split_dates = True,
+                        group_by = [],
+                        SLEEP_TIME = 5
+                        )
+  - save_df_to_csv(df,
+                  path,
+                  filename
+                  )
+
 * Get_ClientID_List.ipynb
   - A Jupyter Notebook template for how to use gaData.py to get data from GA
 * key
