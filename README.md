@@ -1,5 +1,6 @@
 # GA_reporting_API
 Use google analytics reporting api to fetch data from GA
+Read more about this at https://jingsblog.com/2018/11/27/get-unsampled-ab-test-data-from-google-analytics-by-using-analytics-reporting-api/
 * gaData.py
   - Have functions for connecting to GA and fetching data avoiding sampling.
     - To avoid sampling in each API request, something called nextPageToken has been used to enable more than 10,000 results in each API request.
